@@ -3,5 +3,8 @@
 .history
 .venv
 __pycache__
+input
 output
-.speckit\specifications\*.md
+scripts
+.speckit/specifications/*.md
+!.speckit/specifications/ai_productivity_boost.spec.md

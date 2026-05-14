@@ -508,10 +508,13 @@ def add_resource_box_slide(
 # Registry mapping slide type names → builder functions
 # ---------------------------------------------------------------------------
 
+from .rich_layouts import RICH_BUILDERS
+
 SLIDE_BUILDERS: dict[str, callable] = {
     "title": add_title_slide,
     "content": add_content_slide,
     "section-header": add_section_header_slide,
     "two-column": add_two_column_slide,
     "resource-box": add_resource_box_slide,
+    **RICH_BUILDERS,
 }

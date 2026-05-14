@@ -98,6 +98,21 @@ def render(
 
     prs = Presentation()
 
+    # Optional widescreen (16:9, 13.333 x 7.5 in). Defaults to widescreen
+    # whenever any slide uses a rich layout type that assumes widescreen
+    # geometry; can be overridden by ``slide_size: standard`` in front matter.
+    from pptx.util import Inches as _Inches
+    _RICH_TYPES = {"hero-title", "stat-cards", "status-table",
+                   "stack-table", "priority-table", "timeline-cards"}
+    size_pref = (metadata.get("slide_size") or "").strip().lower()
+    want_widescreen = (
+        size_pref == "widescreen"
+        or (size_pref == "" and any(s["type"] in _RICH_TYPES for s in slides))
+    )
+    if want_widescreen:
+        prs.slide_width = _Inches(13.333)
+        prs.slide_height = _Inches(7.5)
+
     any_enriched = False
 
     for slide_data in slides:

@@ -18,8 +18,9 @@ def parse_spec(path: str) -> dict:
     metadata = yaml.safe_load(fm_match.group(1))
     body = text[fm_match.end():]
 
-    # Split slides on horizontal rules (--- on its own line)
-    raw_slides = re.split(r"\n---\s*\n", body)
+    # Split slides on horizontal rules (--- on its own line). Skip ``---``
+    # lines that live inside fenced code blocks (``` ... ```).
+    raw_slides = _split_slides_fence_aware(body)
     slides = []
     for raw in raw_slides:
         raw = raw.strip()
@@ -35,6 +36,47 @@ def parse_spec(path: str) -> dict:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+def _split_slides_fence_aware(body: str) -> list[str]:
+    """Split *body* on ``\n---\n`` lines, ignoring fenced code blocks."""
+    lines = body.split("\n")
+    chunks: list[str] = []
+    current: list[str] = []
+    in_fence = False
+    for line in lines:
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            current.append(line)
+            continue
+        if not in_fence and line.strip() == "---":
+            chunks.append("\n".join(current))
+            current = []
+            continue
+        current.append(line)
+    chunks.append("\n".join(current))
+    return chunks
+
+
+def _parse_data_block(text: str) -> dict | None:
+    """Parse a ``**Data**:`` directive followed by a fenced YAML block."""
+    m = re.search(
+        r"\*\*Data\*\*\s*:\s*\n\s*```(?:yaml|yml)?\s*\n(.*?)\n\s*```",
+        text,
+        re.DOTALL,
+    )
+    if not m:
+        return None
+    try:
+        return yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError as exc:
+        print(f"Warning: failed to parse **Data** YAML block: {exc}")
+        return None
+
+
+def _parse_simple_field(text: str, name: str) -> str:
+    m = re.search(rf"\*\*{re.escape(name)}\*\*\s*:\s*(.+)", text)
+    return m.group(1).strip() if m else ""
+
 
 def _parse_slide(raw: str) -> dict | None:
     """Parse a single slide block into a structured dict."""
@@ -80,6 +122,14 @@ def _parse_slide(raw: str) -> dict | None:
         slide["subtitle"] = sub_match.group(1).strip() if sub_match else ""
         slide["boxes"] = _parse_resource_boxes(rest)
         slide["slide_style"] = _parse_slide_style(rest)
+
+    else:
+        # Rich layouts driven by a ``**Data**:`` YAML block plus simple fields.
+        slide["subtitle"] = _parse_simple_field(rest, "Subtitle")
+        slide["eyebrow"] = _parse_simple_field(rest, "Eyebrow")
+        slide["footer"] = _parse_simple_field(rest, "Footer")
+        slide["wordmark"] = _parse_simple_field(rest, "Wordmark")
+        slide["data"] = _parse_data_block(rest) or {}
 
     return slide
 
