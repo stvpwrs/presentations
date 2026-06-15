@@ -1,6 +1,6 @@
 # Issues
 
-One folder per finding from [`docs/LAYOUT_REVIEW.md`](../docs/LAYOUT_REVIEW.md). Each
+One folder per finding from [`LAYOUT_REVIEW.md`](../LAYOUT_REVIEW.md). Each
 folder contains:
 
 - **`bug.md`** — detailed explanation: symptom, root cause (`file:line`), and a fix direction.
